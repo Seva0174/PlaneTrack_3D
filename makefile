@@ -6,7 +6,7 @@ SRCS    = main.c avion.c
 
 OBJS = $(SRCS:.c=.o)
 
-all: $(TARGET)
+all: clean $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)

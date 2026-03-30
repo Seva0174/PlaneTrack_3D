@@ -3,29 +3,81 @@
 #include <GL/glut.h>
 #include "avion.h"
 
-#define VITESSE_BASE      15.0f   /* unites/seconde */
-#define SENSIBILITE_ROT    1.8f   /* radians/seconde par unite de commande */
+#define VITESSE_BASE      15.0f   /* unites/seconde                  */
+#define VITESSE_MONTEE     8.0f   /* unites/seconde                  */
+#define VITESSE_VIRAGE     1.8f   /* radians/seconde                 */
 
 /* ------------------------------------------------------------------ */
-/* Utilitaires vectoriels internes                                     */
+/* Utilitaires matriciels internes (matrices 4x4, column-major)       */
 /* ------------------------------------------------------------------ */
 
-static void vec_normalize(float *x, float *y, float *z)
+/*
+ * mat4_identite : charge la matrice identite dans m.
+ */
+static void mat4_identite(float m[16])
 {
-    float len = sqrtf((*x)*(*x) + (*y)*(*y) + (*z)*(*z));
-    if (len < 1e-6f) return;
-    *x /= len;
-    *y /= len;
-    *z /= len;
+    m[ 0]=1.f; m[ 4]=0.f; m[ 8]=0.f; m[12]=0.f;
+    m[ 1]=0.f; m[ 5]=1.f; m[ 9]=0.f; m[13]=0.f;
+    m[ 2]=0.f; m[ 6]=0.f; m[10]=1.f; m[14]=0.f;
+    m[ 3]=0.f; m[ 7]=0.f; m[11]=0.f; m[15]=1.f;
 }
 
-static void vec_cross(float ax, float ay, float az,
-                      float bx, float by, float bz,
-                      float *rx, float *ry, float *rz)
+/*
+ * mat4_mul : produit c = a * b (toutes column-major).
+ * c doit etre different de a et b.
+ */
+static void mat4_mul(const float a[16], const float b[16], float c[16])
 {
-    *rx = ay*bz - az*by;
-    *ry = az*bx - ax*bz;
-    *rz = ax*by - ay*bx;
+    int i, j, k;
+    for (i = 0; i < 4; i++)
+        for (j = 0; j < 4; j++) {
+            c[j*4+i] = 0.f;
+            for (k = 0; k < 4; k++)
+                c[j*4+i] += a[k*4+i] * b[j*4+k];
+        }
+}
+
+/*
+ * mat4_translation : construit la matrice de translation (tx, ty, tz).
+ *
+ *   [ 1  0  0  tx ]
+ *   [ 0  1  0  ty ]
+ *   [ 0  0  1  tz ]
+ *   [ 0  0  0   1 ]
+ *
+ * En column-major : indices 12, 13, 14 portent tx, ty, tz.
+ */
+static void mat4_translation(float tx, float ty, float tz, float m[16])
+{
+    mat4_identite(m);
+    m[12] = tx;
+    m[13] = ty;
+    m[14] = tz;
+}
+
+/*
+ * mat4_rot_y : construit la matrice de rotation d'angle theta autour de Y.
+ *
+ *   [ cos   0   sin  0 ]
+ *   [   0   1     0  0 ]
+ *   [-sin   0   cos  0 ]
+ *   [   0   0     0  1 ]
+ *
+ * En column-major :
+ *   col 0 : cos, 0, -sin, 0   => m[0], m[1], m[2],  m[3]
+ *   col 1 :   0, 1,    0, 0   => m[4], m[5], m[6],  m[7]
+ *   col 2 : sin, 0,  cos, 0   => m[8], m[9], m[10], m[11]
+ *   col 3 :   0, 0,    0, 1   => m[12]..m[15]
+ */
+static void mat4_rot_y(float theta, float m[16])
+{
+    float c = cosf(theta);
+    float s = sinf(theta);
+    mat4_identite(m);
+    m[0] =  c;
+    m[2] = -s;
+    m[8] =  s;
+    m[10]=  c;
 }
 
 /* ------------------------------------------------------------------ */
@@ -34,129 +86,96 @@ static void vec_cross(float ax, float ay, float az,
 
 void avion_init(Avion *a)
 {
-    a->x = 0.0f;
-    a->y = 5.0f;
-    a->z = 0.0f;
+    a->vitesse = VITESSE_BASE;
+    a->monter  = 0.0f;
+    a->virer   = 0.0f;
 
-    /* L'avion part vers -Z (vers l'interieur de la scene) */
-    a->dir_x = 0.0f;
-    a->dir_y = 0.0f;
-    a->dir_z = -1.0f;
+    /* Position initiale */
+    mat4_translation(0.0f, 5.0f, 0.0f, a->trans);
 
-    a->up_x = 0.0f;
-    a->up_y = 1.0f;
-    a->up_z = 0.0f;
-
-    a->vitesse  = VITESSE_BASE;
-    a->tangage  = 0.0f;
-    a->roulis   = 0.0f;
+    /* Orientation initiale : rotation de PI autour de Y
+     * pour que l'avion parte vers -Z */
+    mat4_rot_y(3.14159265358979f, a->rot);
 }
 
 /* ------------------------------------------------------------------ */
 /* avion_update                                                        */
+/*                                                                     */
+/* Le deplacement est entierement matriciel :                          */
+/*   - virage  : on compose rot avec une Ry(delta)                    */
+/*   - avance  : on extrait la direction depuis rot, on construit     */
+/*               une matrice de translation et on compose avec trans  */
+/*   - montee  : idem sur l'axe Y monde                               */
 /* ------------------------------------------------------------------ */
 
 void avion_update(Avion *a, float dt)
 {
-    float right_x, right_y, right_z;
+    float delta[16];
+    float tmp[16];
 
-    /* Vecteur droite = dir x up */
-    vec_cross(a->dir_x, a->dir_y, a->dir_z,
-              a->up_x,  a->up_y,  a->up_z,
-              &right_x, &right_y, &right_z);
-    vec_normalize(&right_x, &right_y, &right_z);
-
-    /* --- Roulis : rotation autour de dir --- */
-    if (a->roulis != 0.0f) {
-        float angle = a->roulis * SENSIBILITE_ROT * dt;
-        float c = cosf(angle), s = sinf(angle);
-
-        float nx = c*a->up_x + s*right_x;
-        float ny = c*a->up_y + s*right_y;
-        float nz = c*a->up_z + s*right_z;
-        a->up_x = nx;
-        a->up_y = ny;
-        a->up_z = nz;
-        vec_normalize(&a->up_x, &a->up_y, &a->up_z);
-
-        /* Recalcul du vecteur droite apres roulis */
-        vec_cross(a->dir_x, a->dir_y, a->dir_z,
-                  a->up_x,  a->up_y,  a->up_z,
-                  &right_x, &right_y, &right_z);
-        vec_normalize(&right_x, &right_y, &right_z);
+    /* --- Virage : composition de rotations --- */
+    if (a->virer != 0.0f) {
+        mat4_rot_y(-a->virer * VITESSE_VIRAGE * dt, delta);
+        mat4_mul(a->rot, delta, tmp);
+        int i;
+        for (i = 0; i < 16; i++) a->rot[i] = tmp[i];
     }
 
-    /* --- Tangage : rotation autour du vecteur droite --- */
-    if (a->tangage != 0.0f) {
-        float angle = a->tangage * SENSIBILITE_ROT * dt;
-        float c = cosf(angle), s = sinf(angle);
-
-        float ndx = c*a->dir_x + s*a->up_x;
-        float ndy = c*a->dir_y + s*a->up_y;
-        float ndz = c*a->dir_z + s*a->up_z;
-        a->dir_x = ndx;
-        a->dir_y = ndy;
-        a->dir_z = ndz;
-        vec_normalize(&a->dir_x, &a->dir_y, &a->dir_z);
-
-        float nux = c*a->up_x - s*a->dir_x;
-        float nuy = c*a->up_y - s*a->dir_y;
-        float nuz = c*a->up_z - s*a->dir_z;
-        a->up_x = nux;
-        a->up_y = nuy;
-        a->up_z = nuz;
-        vec_normalize(&a->up_x, &a->up_y, &a->up_z);
+    /* --- Avancement : direction de vol extraite de rot ---
+     *
+     * En column-major, la troisieme colonne de rot (col 2) est le
+     * vecteur Z transforme, soit la direction de vol :
+     *   rot[8]  = composante X
+     *   rot[9]  = composante Y  (ignoree : modele naif)
+     *   rot[10] = composante Z
+     *
+     * On construit T(dx, 0, dz) et on compose avec trans.
+     */
+    {
+        float dx = a->rot[8]  * a->vitesse * dt;
+        float dz = a->rot[10] * a->vitesse * dt;
+        mat4_translation(dx, 0.0f, dz, delta);
+        mat4_mul(delta, a->trans, tmp);
+        int i;
+        for (i = 0; i < 16; i++) a->trans[i] = tmp[i];
     }
 
-    /* --- Avancement --- */
-    a->x += a->dir_x * a->vitesse * dt;
-    a->y += a->dir_y * a->vitesse * dt;
-    a->z += a->dir_z * a->vitesse * dt;
+    /* --- Montee / descente : translation sur Y monde --- */
+    if (a->monter != 0.0f) {
+        float dy = a->monter * VITESSE_MONTEE * dt;
+        mat4_translation(0.0f, dy, 0.0f, delta);
+        mat4_mul(delta, a->trans, tmp);
+        int i;
+        for (i = 0; i < 16; i++) a->trans[i] = tmp[i];
+    }
 }
 
 /* ------------------------------------------------------------------ */
 /* avion_draw                                                          */
 /*                                                                     */
-/* Modele minimaliste : fuselage + ailes + empennage                  */
-/* Tout est dessine dans le repere local de l'avion,                  */
-/* on applique juste une translation + orientation via la matrice.    */
+/* On calcule M = trans * rot et on la charge dans OpenGL.            */
 /* ------------------------------------------------------------------ */
 
 void avion_draw(const Avion *a)
 {
-    /* Vecteur droite = dir x up */
-    float rx = a->dir_y * a->up_z - a->dir_z * a->up_y;
-    float ry = a->dir_z * a->up_x - a->dir_x * a->up_z;
-    float rz = a->dir_x * a->up_y - a->dir_y * a->up_x;
-
-    /*
-     * Matrice de rotation column-major OpenGL :
-     * [right | up | -dir | 0]
-     * On negat dir car OpenGL regarde vers -Z par defaut.
-     */
-    float m[16] = {
-         rx,          ry,          rz,          0.0f,
-         a->up_x,     a->up_y,     a->up_z,     0.0f,
-        -a->dir_x,   -a->dir_y,   -a->dir_z,    0.0f,
-         a->x,        a->y,        a->z,         1.0f
-    };
+    float m[16];
+    mat4_mul(a->trans, a->rot, m);
 
     glPushMatrix();
     glMultMatrixf(m);
 
-    /* Le fuselage est modelise sur l'axe X, mais la direction de vol
-     * est -Z dans le repere local. On tourne de 90 deg autour de Y
-     * pour que le nez pointe vers l'avant. */
-    glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
+    /* Le fuselage est modelise sur l'axe X ; on tourne de -90 deg
+     * autour de Y pour que le nez pointe dans la direction de vol. */
+    glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
 
-    /* --- Fuselage (corps allonge sur X) --- */
+    /* --- Fuselage --- */
     glColor3f(0.85f, 0.85f, 0.90f);
     glPushMatrix();
     glScalef(2.4f, 0.4f, 0.4f);
     glutSolidCube(1.0f);
     glPopMatrix();
 
-    /* --- Cabine (bosse sur le dessus, vers l'avant) --- */
+    /* --- Cabine --- */
     glColor3f(0.5f, 0.75f, 0.95f);
     glPushMatrix();
     glTranslatef(0.4f, 0.28f, 0.0f);

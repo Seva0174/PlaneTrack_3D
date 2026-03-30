@@ -1,21 +1,43 @@
 #ifndef AVION_H
 #define AVION_H
 
+/*
+ * Matrices 4x4 stockees en column-major (convention OpenGL) :
+ *
+ *   index memoire :  0  4  8  12
+ *                    1  5  9  13
+ *                    2  6 10  14
+ *                    3  7 11  15
+ *
+ * Matrice de translation T :
+ *   [ 1  0  0  tx ]      en memoire : t[12]=tx, t[13]=ty, t[14]=tz
+ *   [ 0  1  0  ty ]
+ *   [ 0  0  1  tz ]
+ *   [ 0  0  0   1 ]
+ *
+ * Matrice de rotation R (Ry) :
+ *   [ cos  0  sin  0 ]
+ *   [   0  1    0  0 ]
+ *   [-sin  0  cos  0 ]
+ *   [   0  0    0  1 ]
+ *
+ * La transformation finale est M = T * R :
+ * on applique d'abord la rotation, puis la translation.
+ */
 typedef struct {
-    float x, y, z;           /* position dans le monde */
+    float trans[16];      /* matrice de translation 4x4 (column-major) */
+    float rot[16];        /* matrice de rotation    4x4 (column-major) */
+    float vitesse;        /* vitesse d'avancement  (unites/seconde)    */
 
-    float dir_x, dir_y, dir_z;   /* vecteur direction (normalise) */
-    float up_x,  up_y,  up_z;    /* vecteur up (roulis) */
-
-    float vitesse;            /* vitesse d'avancement */
-    float tangage;            /* commande tangage  : -1.0 a +1.0 */
-    float roulis;             /* commande roulis   : -1.0 a +1.0 */
+    /* commandes : -1.0 a +1.0 */
+    float monter;         /* Z : monte,  S : descend                   */
+    float virer;          /* Q : gauche, D : droite                    */
 } Avion;
 
 /* Initialise l'avion a une position et orientation par defaut */
 void avion_init(Avion *a);
 
-/* Met a jour la position et l'orientation selon les commandes et dt (secondes) */
+/* Met a jour les matrices selon les commandes et dt (secondes) */
 void avion_update(Avion *a, float dt);
 
 /* Dessine le modele 3D de l'avion */
