@@ -17,27 +17,27 @@
 #define CAM_HAUTEUR     1.8f     /* offset vertical de la camera      */
 #define GRILLE_TAILLE   200
 #define GRILLE_PAS      10
+#define PI              3.14159265358979
 
 /* ------------------------------------------------------------------ */
 /* Variables globales                                                  */
 /* ------------------------------------------------------------------ */
 
-static Avion avion;
+Avion avion;
 
-static int touche_haut    = 0;
-static int touche_bas     = 0;
-static int touche_gauche  = 0;
-static int touche_droite  = 0;
+int touche_haut    = 0;
+int touche_bas     = 0;
+int touche_gauche  = 0;
+int touche_droite  = 0;
 
-static int mode_log       = 0;
-static int temps_precedent = 0;
+int mode_log       = 0;
+int temps_precedent = 0;
 
 /* ------------------------------------------------------------------ */
 /* Dessin du sol                                                       */
 /* ------------------------------------------------------------------ */
 
-static void dessiner_sol(void)
-{
+void dessiner_sol(){
     int i;
     glColor3f(0.25f, 0.25f, 0.25f);
     glBegin(GL_LINES);
@@ -51,23 +51,20 @@ static void dessiner_sol(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* Callback : affichage                                                */
+/* Affichage                                                          */
 /* ------------------------------------------------------------------ */
 
-static void affichage(void)
-{
+void affichage(){
     float cam_x, cam_y, cam_z;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    {
-        double fov_rad = 60.0 * 3.14159265358979 / 180.0;
-        double t = 0.5 * tan(fov_rad / 2.0);
-        double r = t * ((double)FENETRE_W / (double)FENETRE_H);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glFrustum(-r, r, -t, t, 0.5, 2000.0);
-    }
+    double fov_rad = 60.0 * PI / 180.0;
+    double t = 0.5 * tan(fov_rad / 2.0);
+    double r = t * ((double)FENETRE_W / (double)FENETRE_H);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(-r, r, -t, t, 0.5, 2000.0);
+    
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -91,11 +88,10 @@ static void affichage(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* Callback : timer                                                    */
+/* timer                                                              */
 /* ------------------------------------------------------------------ */
 
-static void timer(int valeur)
-{
+void timer(int valeur){
     int temps_courant;
     float dt;
 
@@ -129,11 +125,10 @@ static void timer(int valeur)
 }
 
 /* ------------------------------------------------------------------ */
-/* Callbacks clavier                                                   */
+/*Clavier                                                             */
 /* ------------------------------------------------------------------ */
 
-static void clavier_enfonce(unsigned char touche, int x, int y)
-{
+void clavier_enfonce(unsigned char touche, int x, int y){
     (void)x; (void)y;
     switch (touche) {
         case 'z': case 'Z': touche_haut    = 1; break;
@@ -145,8 +140,7 @@ static void clavier_enfonce(unsigned char touche, int x, int y)
     }
 }
 
-static void clavier_relache(unsigned char touche, int x, int y)
-{
+void clavier_relache(unsigned char touche, int x, int y){
     (void)x; (void)y;
     switch (touche) {
         case 'z': case 'Z': touche_haut    = 0; break;
@@ -160,11 +154,10 @@ static void clavier_relache(unsigned char touche, int x, int y)
 
 
 /* ------------------------------------------------------------------ */
-/* main                                                                */
+/* main                                                               */
 /* ------------------------------------------------------------------ */
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
     int i;
 
     for (i = 1; i < argc; i++) {

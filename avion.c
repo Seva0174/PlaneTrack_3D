@@ -3,9 +3,11 @@
 #include <GL/glut.h>
 #include "avion.h"
 
-#define VITESSE_BASE      15.0f   /* unites/seconde                  */
+#define VITESSE_BASE      20.0f   /* unites/seconde                  */
 #define VITESSE_MONTEE     8.0f   /* unites/seconde                  */
 #define VITESSE_VIRAGE     1.8f   /* radians/seconde                 */
+#define PI              3.14159265358979
+
 
 /* ------------------------------------------------------------------ */
 /* Utilitaires matriciels internes (matrices 4x4, column-major)       */
@@ -14,8 +16,7 @@
 /*
  * mat4_identite : charge la matrice identite dans m.
  */
-static void mat4_identite(float m[16])
-{
+void mat4_identite(float m[16]){
     m[ 0]=1.f; m[ 4]=0.f; m[ 8]=0.f; m[12]=0.f;
     m[ 1]=0.f; m[ 5]=1.f; m[ 9]=0.f; m[13]=0.f;
     m[ 2]=0.f; m[ 6]=0.f; m[10]=1.f; m[14]=0.f;
@@ -26,8 +27,7 @@ static void mat4_identite(float m[16])
  * mat4_mul : produit c = a * b (toutes column-major).
  * c doit etre different de a et b.
  */
-static void mat4_mul(const float a[16], const float b[16], float c[16])
-{
+void mat4_mul(const float a[16], const float b[16], float c[16]){
     int i, j, k;
     for (i = 0; i < 4; i++)
         for (j = 0; j < 4; j++) {
@@ -47,8 +47,7 @@ static void mat4_mul(const float a[16], const float b[16], float c[16])
  *
  * En column-major : indices 12, 13, 14 portent tx, ty, tz.
  */
-static void mat4_translation(float tx, float ty, float tz, float m[16])
-{
+void mat4_translation(float tx, float ty, float tz, float m[16]){
     mat4_identite(m);
     m[12] = tx;
     m[13] = ty;
@@ -69,8 +68,7 @@ static void mat4_translation(float tx, float ty, float tz, float m[16])
  *   col 2 : sin, 0,  cos, 0   => m[8], m[9], m[10], m[11]
  *   col 3 :   0, 0,    0, 1   => m[12]..m[15]
  */
-static void mat4_rot_y(float theta, float m[16])
-{
+void mat4_rot_y(float theta, float m[16]){
     float c = cosf(theta);
     float s = sinf(theta);
     mat4_identite(m);
@@ -84,8 +82,7 @@ static void mat4_rot_y(float theta, float m[16])
 /* avion_init                                                          */
 /* ------------------------------------------------------------------ */
 
-void avion_init(Avion *a)
-{
+void avion_init(Avion *a){
     a->vitesse = VITESSE_BASE;
     a->monter  = 0.0f;
     a->virer   = 0.0f;
@@ -95,11 +92,11 @@ void avion_init(Avion *a)
 
     /* Orientation initiale : rotation de PI autour de Y
      * pour que l'avion parte vers -Z */
-    mat4_rot_y(3.14159265358979f, a->rot);
+    mat4_rot_y(PI, a->rot);
 }
 
 /* ------------------------------------------------------------------ */
-/* avion_update                                                        */
+/* avion_update                PI                                        */
 /*                                                                     */
 /* Le deplacement est entierement matriciel :                          */
 /*   - virage  : on compose rot avec une Ry(delta)                    */
@@ -108,8 +105,7 @@ void avion_init(Avion *a)
 /*   - montee  : idem sur l'axe Y monde                               */
 /* ------------------------------------------------------------------ */
 
-void avion_update(Avion *a, float dt)
-{
+void avion_update(Avion *a, float dt){
     float delta[16];
     float tmp[16];
 
@@ -118,7 +114,8 @@ void avion_update(Avion *a, float dt)
         mat4_rot_y(-a->virer * VITESSE_VIRAGE * dt, delta);
         mat4_mul(a->rot, delta, tmp);
         int i;
-        for (i = 0; i < 16; i++) a->rot[i] = tmp[i];
+        for (i = 0; i < 16; i++)
+            a->rot[i] = tmp[i];
     }
 
     /* --- Avancement : direction de vol extraite de rot ---
@@ -156,8 +153,7 @@ void avion_update(Avion *a, float dt)
 /* On calcule M = trans * rot et on la charge dans OpenGL.            */
 /* ------------------------------------------------------------------ */
 
-void avion_draw(const Avion *a)
-{
+void avion_draw(const Avion *a){
     float m[16];
     mat4_mul(a->trans, a->rot, m);
 
