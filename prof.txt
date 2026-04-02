@@ -1,0 +1,1 @@
+* Ajouter anitmation quand on monte et descend et pouvoir adapter l'animation quand on combine le haut/bas avec gauche/droite

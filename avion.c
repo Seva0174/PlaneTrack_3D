@@ -4,7 +4,7 @@
 #include "avion.h"
 
 #define VITESSE_BASE      20.0f   /* unites/seconde                  */
-#define VITESSE_MONTEE     8.0f   /* unites/seconde                  */
+#define VITESSE_MONTEE     10.0f   /* unites/seconde                  */
 #define VITESSE_VIRAGE     1.8f   /* radians/seconde                 */
 #define PI              3.14159265358979
 

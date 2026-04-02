@@ -37,16 +37,14 @@ int temps_precedent = 0;
 /* Dessin du sol                                                       */
 /* ------------------------------------------------------------------ */
 
-void dessiner_sol(){
-    int i;
-    glColor3f(0.25f, 0.25f, 0.25f);
-    glBegin(GL_LINES);
-    for (i = -GRILLE_TAILLE; i <= GRILLE_TAILLE; i += GRILLE_PAS) {
-        glVertex3f((float)i,              0.0f, (float)-GRILLE_TAILLE);
-        glVertex3f((float)i,              0.0f, (float) GRILLE_TAILLE);
-        glVertex3f((float)-GRILLE_TAILLE, 0.0f, (float)i);
-        glVertex3f((float) GRILLE_TAILLE, 0.0f, (float)i);
-    }
+void dessiner_sol() {
+    glColor3f(0.0f, 0.6f, 0.0f); // vert
+
+    glBegin(GL_QUADS);
+        glVertex3f(-GRILLE_TAILLE, 0.0f, -GRILLE_TAILLE);
+        glVertex3f( GRILLE_TAILLE, 0.0f, -GRILLE_TAILLE);
+        glVertex3f( GRILLE_TAILLE, 0.0f,  GRILLE_TAILLE);
+        glVertex3f(-GRILLE_TAILLE, 0.0f,  GRILLE_TAILLE);
     glEnd();
 }
 
@@ -172,7 +170,7 @@ int main(int argc, char **argv){
     glutCreateWindow("Jeu de course aerienne");
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.10f, 0.13f, 0.20f, 1.0f);
+    glClearColor(0.10f, 0.13f, 0.50f, 1.0f);
 
     avion_init(&avion);
 
