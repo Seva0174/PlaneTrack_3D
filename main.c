@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include <OpenGL/gl.h>
-#include "GLUT/glut.h"
+#include <GLUT/glut.h>
 
 #include "volume.h"
 
