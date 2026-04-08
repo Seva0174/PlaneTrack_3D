@@ -5,6 +5,7 @@
 #include <GL/glu.h>
 #include <GL/glut.h>
 #include "avion.h"
+#include "anneau.h"
 
 /* ------------------------------------------------------------------ */
 /* Constantes                                                          */
@@ -15,7 +16,7 @@
 #define FENETRE_H       768
 #define CAM_DIST        6.0f     /* distance camera derriere l'avion  */
 #define CAM_HAUTEUR     1.8f     /* offset vertical de la camera      */
-#define GRILLE_TAILLE   200
+#define GRILLE_TAILLE   400
 #define GRILLE_PAS      10
 #define PI              3.14159265358979
 
@@ -24,6 +25,7 @@
 /* ------------------------------------------------------------------ */
 
 Avion avion;
+Anneau anneaux[NB_ANNEAUX];
 
 int touche_haut    = 0;
 int touche_bas     = 0;
@@ -38,7 +40,7 @@ int temps_precedent = 0;
 /* ------------------------------------------------------------------ */
 
 void dessiner_sol() {
-    glColor3f(0.0f, 0.6f, 0.0f); // vert
+    glColor3f(0.0f, 0.6f, 0.0f);
 
     glBegin(GL_QUADS);
         glVertex3f(-GRILLE_TAILLE, 0.0f, -GRILLE_TAILLE);
@@ -62,7 +64,6 @@ void affichage(){
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(-r, r, -t, t, 0.5, 2000.0);
-    
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -76,10 +77,11 @@ void affichage(){
     gluLookAt(
         cam_x, cam_y, cam_z,
         avion.trans[12], avion.trans[13], avion.trans[14],
-        0.0f, 1.0f, 0.0f          /* up monde fixe : pas de roulis */
+        0.0f, 1.0f, 0.0f
     );
 
     dessiner_sol();
+    anneaux_draw(anneaux);
     avion_draw(&avion);
 
     glutSwapBuffers();
@@ -111,7 +113,6 @@ void timer(int valeur){
     avion_update(&avion, dt);
 
     if (mode_log) {
-        /* Position dans trans[12..14], direction dans rot[8..10] */
         printf("Pos:(%.1f,%.1f,%.1f) Dir:(%.2f,%.2f,%.2f)\n",
                avion.trans[12], avion.trans[13], avion.trans[14],
                avion.rot[8], avion.rot[9], avion.rot[10]);
@@ -123,7 +124,7 @@ void timer(int valeur){
 }
 
 /* ------------------------------------------------------------------ */
-/*Clavier                                                             */
+/* Clavier                                                             */
 /* ------------------------------------------------------------------ */
 
 void clavier_enfonce(unsigned char touche, int x, int y){
@@ -149,8 +150,6 @@ void clavier_relache(unsigned char touche, int x, int y){
     }
 }
 
-
-
 /* ------------------------------------------------------------------ */
 /* main                                                               */
 /* ------------------------------------------------------------------ */
@@ -173,6 +172,38 @@ int main(int argc, char **argv){
     glClearColor(0.10f, 0.13f, 0.50f, 1.0f);
 
     avion_init(&avion);
+    anneaux_init(anneaux);
+
+    /* Place l'avion face au 1er anneau a distance de securite.
+     *
+     * avion_init fixe trans a (0,5,0) et rot a Ry(PI).
+     * On ecrase ces deux matrices avec les valeurs issues du depart.
+     *
+     * La matrice de translation column-major :
+     *   trans[12] = x,  trans[13] = y,  trans[14] = z
+     *
+     * La matrice de rotation Ry(theta) column-major :
+     *   m[0]=cos  m[2]=-sin  m[8]=sin  m[10]=cos  reste : identite
+     */
+    {
+        float sx, sz, ay;
+        float c, s;
+        anneaux_get_depart(&sx, &sz, &ay);
+
+        avion.trans[12] = sx;
+        avion.trans[13] = 5.0f;   /* hauteur de depart inchangee */
+        avion.trans[14] = sz;
+
+        c = cosf(ay);
+        s = sinf(ay);
+        avion.rot[ 0] =  c;
+        avion.rot[ 2] = -s;
+        avion.rot[ 4] =  0.0f;
+        avion.rot[ 5] =  1.0f;
+        avion.rot[ 6] =  0.0f;
+        avion.rot[ 8] =  s;
+        avion.rot[10] =  c;
+    }
 
     glutDisplayFunc(affichage);
     glutKeyboardFunc(clavier_enfonce);

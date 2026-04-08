@@ -2,7 +2,7 @@ CC      = gcc
 CFLAGS  = -Wall -Wextra -std=c99 -O2
 LIBS    = -lGL -lGLU -lglut -lm
 TARGET  = jeu_avion
-SRCS    = main.c avion.c
+SRCS    = main.c avion.c anneau.c
 
 OBJS = $(SRCS:.c=.o)
 
