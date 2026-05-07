@@ -6,6 +6,7 @@
 /*                                                                     */
 /* Chaque anneau est un tore vertical que l'avion doit traverser.     */
 /* Le 1er anneau est vert, le dernier est rouge, les autres dores.    */
+/* L'anneau courant (cible active) est mis en evidence en cyan.       */
 /* ------------------------------------------------------------------ */
 
 #define NB_ANNEAUX      12
@@ -29,8 +30,15 @@ typedef struct {
 /* Initialise le tableau des anneaux avec un parcours en forme de huit */
 void anneaux_init(Anneau anneaux[NB_ANNEAUX]);
 
-/* Dessine tous les anneaux */
-void anneaux_draw(const Anneau anneaux[NB_ANNEAUX]);
+/*
+ * Dessine tous les anneaux.
+ * anneau_courant : index du prochain anneau a franchir.
+ *   - anneau 0          : vert (depart)
+ *   - anneau_courant    : cyan pulse (cible active), sauf si 0 ou dernier
+ *   - anneau NB_ANNEAUX-1 : rouge (arrivee)
+ *   - autres            : dore
+ */
+void anneaux_draw(const Anneau anneaux[NB_ANNEAUX], int anneau_courant);
 
 /*
  * Retourne la position et l'angle de depart de l'avion pour qu'il

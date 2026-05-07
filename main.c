@@ -6,6 +6,7 @@
 #include <GL/glut.h>
 #include "avion.h"
 #include "anneau.h"
+#include "jeu.h"
 
 /* ------------------------------------------------------------------ */
 /* Constantes                                                          */
@@ -17,22 +18,22 @@
 #define CAM_DIST        6.0f     /* distance camera derriere l'avion  */
 #define CAM_HAUTEUR     1.8f     /* offset vertical de la camera      */
 #define GRILLE_TAILLE   400
-#define GRILLE_PAS      10
 #define PI              3.14159265358979
 
 /* ------------------------------------------------------------------ */
 /* Variables globales                                                  */
 /* ------------------------------------------------------------------ */
 
-Avion avion;
+Avion  avion;
 Anneau anneaux[NB_ANNEAUX];
+Jeu    jeu;
 
 int touche_haut    = 0;
 int touche_bas     = 0;
 int touche_gauche  = 0;
 int touche_droite  = 0;
 
-int mode_log       = 0;
+int mode_log        = 0;
 int temps_precedent = 0;
 
 /* ------------------------------------------------------------------ */
@@ -51,13 +52,14 @@ void dessiner_sol() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Affichage                                                          */
+/* Affichage                                                           */
 /* ------------------------------------------------------------------ */
 
-void affichage(){
+void affichage() {
     float cam_x, cam_y, cam_z;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     double fov_rad = 60.0 * PI / 180.0;
     double t = 0.5 * tan(fov_rad / 2.0);
     double r = t * ((double)FENETRE_W / (double)FENETRE_H);
@@ -81,18 +83,19 @@ void affichage(){
     );
 
     dessiner_sol();
-    anneaux_draw(anneaux);
+    anneaux_draw(anneaux, jeu.anneau_courant);
     avion_draw(&avion);
+    jeu_draw_hud(&jeu, FENETRE_W, FENETRE_H);
 
     glutSwapBuffers();
 }
 
 /* ------------------------------------------------------------------ */
-/* timer                                                              */
+/* Timer                                                               */
 /* ------------------------------------------------------------------ */
 
-void timer(int valeur){
-    int temps_courant;
+void timer(int valeur) {
+    int   temps_courant;
     float dt;
 
     (void)valeur;
@@ -111,6 +114,7 @@ void timer(int valeur){
     if (touche_droite) avion.virer  =  1.0f;
 
     avion_update(&avion, dt);
+    jeu_update(&jeu, &avion, anneaux, dt);
 
     if (mode_log) {
         printf("Pos:(%.1f,%.1f,%.1f) Dir:(%.2f,%.2f,%.2f)\n",
@@ -127,7 +131,7 @@ void timer(int valeur){
 /* Clavier                                                             */
 /* ------------------------------------------------------------------ */
 
-void clavier_enfonce(unsigned char touche, int x, int y){
+void clavier_enfonce(unsigned char touche, int x, int y) {
     (void)x; (void)y;
     switch (touche) {
         case 'z': case 'Z': touche_haut    = 1; break;
@@ -139,7 +143,7 @@ void clavier_enfonce(unsigned char touche, int x, int y){
     }
 }
 
-void clavier_relache(unsigned char touche, int x, int y){
+void clavier_relache(unsigned char touche, int x, int y) {
     (void)x; (void)y;
     switch (touche) {
         case 'z': case 'Z': touche_haut    = 0; break;
@@ -151,10 +155,10 @@ void clavier_relache(unsigned char touche, int x, int y){
 }
 
 /* ------------------------------------------------------------------ */
-/* main                                                               */
+/* main                                                                */
 /* ------------------------------------------------------------------ */
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
     int i;
 
     for (i = 1; i < argc; i++) {
@@ -173,6 +177,7 @@ int main(int argc, char **argv){
 
     avion_init(&avion);
     anneaux_init(anneaux);
+    jeu_init(&jeu);
 
     /* Place l'avion face au 1er anneau a distance de securite.
      *
@@ -191,7 +196,7 @@ int main(int argc, char **argv){
         anneaux_get_depart(&sx, &sz, &ay);
 
         avion.trans[12] = sx;
-        avion.trans[13] = 5.0f;   /* hauteur de depart inchangee */
+        avion.trans[13] = 5.0f;
         avion.trans[14] = sz;
 
         c = cosf(ay);
