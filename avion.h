@@ -37,6 +37,13 @@ typedef struct {
 /* Initialise l'avion a une position et orientation par defaut */
 void avion_init(Avion *a);
 
+/*
+ * Place l'avion au point de depart face au premier anneau.
+ * Utilise anneaux_get_depart() pour obtenir la position et l'angle.
+ * Appelee au lancement et a chaque reset.
+ */
+void avion_placer_depart(Avion *a);
+
 /* Met a jour les matrices selon les commandes et dt (secondes) */
 void avion_update(Avion *a, float dt);
 

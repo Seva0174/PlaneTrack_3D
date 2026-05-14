@@ -17,11 +17,18 @@ typedef struct {
 void jeu_init(Jeu *j);
 
 /*
- * Met a jour le chronometre et teste le passage de l'avion dans
- * l'anneau courant.
- * Affiche dans le terminal chaque validation.
+ * Remet le jeu a zero : chrono, anneau courant, et teleporte l'avion
+ * au point de depart face au premier anneau.
  */
-void jeu_update(Jeu *j, const Avion *avion,const Anneau anneaux[NB_ANNEAUX], float dt);
+void jeu_reset(Jeu *j, Avion *avion);
+
+/*
+ * Met a jour le chronometre, teste le passage de l'avion dans
+ * l'anneau courant, et detecte la collision avec le tube du tore.
+ * En cas de collision, appelle jeu_reset.
+ */
+void jeu_update(Jeu *j, Avion *avion,
+                const Anneau anneaux[NB_ANNEAUX], float dt);
 
 /*
  * Dessine le HUD : chronometre centre en haut de la fenetre.

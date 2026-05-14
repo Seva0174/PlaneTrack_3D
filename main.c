@@ -12,11 +12,11 @@
 /* Constantes                                                          */
 /* ------------------------------------------------------------------ */
 
-#define TIMER_MS        16       /* ~60 fps                           */
+#define TIMER_MS        16
 #define FENETRE_W       1024
 #define FENETRE_H       768
-#define CAM_DIST        6.0f     /* distance camera derriere l'avion  */
-#define CAM_HAUTEUR     1.8f     /* offset vertical de la camera      */
+#define CAM_DIST        6.0f
+#define CAM_HAUTEUR     1.8f
 #define GRILLE_TAILLE   400
 #define PI              3.14159265358979
 
@@ -42,7 +42,6 @@ int temps_precedent = 0;
 
 void dessiner_sol() {
     glColor3f(0.0f, 0.6f, 0.0f);
-
     glBegin(GL_QUADS);
         glVertex3f(-GRILLE_TAILLE, 0.0f, -GRILLE_TAILLE);
         glVertex3f( GRILLE_TAILLE, 0.0f, -GRILLE_TAILLE);
@@ -70,8 +69,6 @@ void affichage() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /* Position = colonne de translation : trans[12], trans[13], trans[14] */
-    /* Direction de vol = troisieme colonne de rot : rot[8], rot[9], rot[10] */
     cam_x = avion.trans[12] - avion.rot[8]  * CAM_DIST;
     cam_y = avion.trans[13]                 + CAM_HAUTEUR;
     cam_z = avion.trans[14] - avion.rot[10] * CAM_DIST;
@@ -179,36 +176,8 @@ int main(int argc, char **argv) {
     anneaux_init(anneaux);
     jeu_init(&jeu);
 
-    /* Place l'avion face au 1er anneau a distance de securite.
-     *
-     * avion_init fixe trans a (0,5,0) et rot a Ry(PI).
-     * On ecrase ces deux matrices avec les valeurs issues du depart.
-     *
-     * La matrice de translation column-major :
-     *   trans[12] = x,  trans[13] = y,  trans[14] = z
-     *
-     * La matrice de rotation Ry(theta) column-major :
-     *   m[0]=cos  m[2]=-sin  m[8]=sin  m[10]=cos  reste : identite
-     */
-    {
-        float sx, sz, ay;
-        float c, s;
-        anneaux_get_depart(&sx, &sz, &ay);
-
-        avion.trans[12] = sx;
-        avion.trans[13] = 5.0f;
-        avion.trans[14] = sz;
-
-        c = cosf(ay);
-        s = sinf(ay);
-        avion.rot[ 0] =  c;
-        avion.rot[ 2] = -s;
-        avion.rot[ 4] =  0.0f;
-        avion.rot[ 5] =  1.0f;
-        avion.rot[ 6] =  0.0f;
-        avion.rot[ 8] =  s;
-        avion.rot[10] =  c;
-    }
+    /* Place l'avion au point de depart face au premier anneau */
+    avion_placer_depart(&avion);
 
     glutDisplayFunc(affichage);
     glutKeyboardFunc(clavier_enfonce);
