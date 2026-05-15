@@ -32,6 +32,19 @@ typedef struct {
     /* commandes : -1.0 a +1.0 */
     float monter;         /* Z : monte,  S : descend                   */
     float virer;          /* Q : gauche, D : droite                    */
+
+    /*
+     * Angles visuels (en degres) : purement cosmetiques, ils n'affectent
+     * pas la physique ni la detection de collision.
+     * Mis a jour par avion_update() via un lerp, appliques dans avion_draw().
+     *
+     *   tangage_visuel > 0  => nez pointe vers le haut
+     *   tangage_visuel < 0  => nez pointe vers le bas
+     *   roulis_visuel  > 0  => aile gauche en haut (virage a droite)
+     *   roulis_visuel  < 0  => aile droite en haut (virage a gauche)
+     */
+    float tangage_visuel; /* inclinaison nez haut/bas, en degres       */
+    float roulis_visuel;  /* inclinaison ailes gauche/droite, en degres*/
 } Avion;
 
 /* Initialise l'avion a une position et orientation par defaut */
