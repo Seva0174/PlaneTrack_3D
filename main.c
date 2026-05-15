@@ -135,7 +135,10 @@ void clavier_enfonce(unsigned char touche, int x, int y) {
         case 's': case 'S': touche_bas     = 1; break;
         case 'q': case 'Q': touche_gauche  = 1; break;
         case 'd': case 'D': touche_droite  = 1; break;
-        case 27:  exit(0);                       break;
+        case 'r': case 'R':
+            jeu_reset(&jeu, &avion);
+            break;
+        case 27:  exit(0); break;
         default: break;
     }
 }
@@ -176,7 +179,6 @@ int main(int argc, char **argv) {
     anneaux_init(anneaux);
     jeu_init(&jeu);
 
-    /* Place l'avion au point de depart face au premier anneau */
     avion_placer_depart(&avion);
 
     glutDisplayFunc(affichage);
@@ -186,7 +188,7 @@ int main(int argc, char **argv) {
     glutSetCursor(GLUT_CURSOR_NONE);
 
     if (mode_log) {
-        printf("Mode log actif. Controles: Z=monter S=descendre Q=gauche D=droite Echap=quitter\n");
+        printf("Mode log actif. Controles: Z=monter S=descendre Q=gauche D=droite R=rejouer Echap=quitter\n");
         fflush(stdout);
     }
 
