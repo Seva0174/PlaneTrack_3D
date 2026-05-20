@@ -33,7 +33,7 @@ int touche_bas     = 0;
 int touche_gauche  = 0;
 int touche_droite  = 0;
 
-int mode_log        = 0;
+int mode_log = 0;
 int temps_precedent = 0;
 
 /* ------------------------------------------------------------------ */
@@ -114,9 +114,7 @@ void timer(int valeur) {
     jeu_update(&jeu, &avion, anneaux, dt);
 
     if (mode_log) {
-        printf("Pos:(%.1f,%.1f,%.1f) Dir:(%.2f,%.2f,%.2f)\n",
-               avion.trans[12], avion.trans[13], avion.trans[14],
-               avion.rot[8], avion.rot[9], avion.rot[10]);
+        printf("Pos:(%.1f,%.1f,%.1f) Dir:(%.2f,%.2f,%.2f)\n",avion.trans[12], avion.trans[13], avion.trans[14],avion.rot[8], avion.rot[9], avion.rot[10]);
         fflush(stdout);
     }
 

@@ -158,15 +158,15 @@ void avion_update(Avion *a, float dt){
      *   monter =  0 => cible =  0 (retour au neutre)
      *
      * Roulis :
-     *   virer =  1 (droite) => cible = -ROULIS_MAX (aile droite baisse)
-     *   virer = -1 (gauche) => cible =  ROULIS_MAX (aile gauche baisse)
+     *   virer = -1 (droite) => cible = -ROULIS_MAX (aile droite baisse)
+     *   virer = 1 (gauche) => cible =  ROULIS_MAX (aile gauche baisse)
      *   virer =  0          => cible =  0
      */
     {
         float k = 1.0f - expf(-LERP_VITESSE * dt);
 
         float tangage_cible = a->monter *  TANGAGE_MAX;
-        float roulis_cible  = a->virer  * -ROULIS_MAX;
+        float roulis_cible  = a->virer  * ROULIS_MAX;
 
         a->tangage_visuel += (tangage_cible - a->tangage_visuel) * k;
         a->roulis_visuel  += (roulis_cible  - a->roulis_visuel)  * k;
