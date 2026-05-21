@@ -27,7 +27,7 @@ typedef struct {
                    /* le trou du tore est face a la direction angle_y  */
 } Anneau;
 
-/* Initialise le tableau des anneaux avec un parcours en forme de huit */
+/* Initialise le tableau des anneaux avec un parcours en cercle */
 void anneaux_init(Anneau anneaux[NB_ANNEAUX]);
 
 /*
@@ -44,7 +44,6 @@ void anneaux_draw(const Anneau anneaux[NB_ANNEAUX], int anneau_courant);
  * Retourne la position et l'angle de depart de l'avion pour qu'il
  * soit oriente face au premier anneau avec une distance de securite.
  */
-void anneaux_get_depart(float *start_x, float *start_z,
-                        float *start_angle_y);
+void anneaux_get_depart(float *start_x, float *start_z,float *start_angle_y);
 
 #endif

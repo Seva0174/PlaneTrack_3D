@@ -4,10 +4,6 @@
 #include "anneau.h"
 #include "avion.h"
 
-/* ------------------------------------------------------------------ */
-/* Structure de l'etat du jeu                                          */
-/* ------------------------------------------------------------------ */
-
 typedef struct {
     float chrono_secondes;   /* temps ecoule depuis le passage du 1er anneau */
     int   anneau_courant;    /* prochain anneau a franchir (0..NB_ANNEAUX)   */
@@ -31,8 +27,7 @@ void jeu_reset(Jeu *j, Avion *avion);
  * et la collision avec le sol.
  * En cas de collision, appelle jeu_reset.
  */
-void jeu_update(Jeu *j, Avion *avion,
-                const Anneau anneaux[NB_ANNEAUX], float dt);
+void jeu_update(Jeu *j, Avion *avion,const Anneau anneaux[NB_ANNEAUX], float dt);
 
 /*
  * Dessine le HUD : chronometre centre en haut de la fenetre,

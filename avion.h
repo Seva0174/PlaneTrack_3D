@@ -2,7 +2,7 @@
 #define AVION_H
 
 /*
- * Matrices 4x4 stockees en column-major (convention OpenGL) :
+ * Matrices 4x4 stockees en column-major pour les fonction opengl :
  *
  *   index memoire :  0  4  8  12
  *                    1  5  9  13

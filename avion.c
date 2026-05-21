@@ -17,14 +17,15 @@
 #define ROULIS_MAX     35.0f   /* aile gauche en haut quand virer = 1 */
 
 /*
+* interpolation linéaire
  * Vitesse de lissage du lerp (fraction de l'ecart corrige par seconde).
  * Plus la valeur est grande, plus la transition est rapide.
- *   8.0 => l'avion atteint ~99% de l'angle cible en ~0.6 s
+ *   8.0 => l'avion atteint ~99% de l'angle cible en environ 0.6 s
  */
 #define LERP_VITESSE    8.0f
 
 /* ------------------------------------------------------------------ */
-/* Utilitaires matriciels internes (matrices 4x4, column-major)       */
+/* fonction pour matrice internes        */
 /* ------------------------------------------------------------------ */
 
 void mat4_identite(float m[16]){
@@ -61,10 +62,7 @@ void mat4_rot_y(float theta, float m[16]){
     m[10]=  c;
 }
 
-/* ------------------------------------------------------------------ */
-/* avion_init                                                          */
-/* ------------------------------------------------------------------ */
-
+// initialise l'avion
 void avion_init(Avion *a){
     a->vitesse = VITESSE_BASE;
     a->monter  = 0.0f;
@@ -77,14 +75,8 @@ void avion_init(Avion *a){
     mat4_identite(a->rot);
 }
 
-/* ------------------------------------------------------------------ */
-/* avion_placer_depart                                                 */
-/*                                                                     */
-/* Place l'avion au point de depart face au premier anneau.           */
-/* Factorise le bloc de positionnement present dans main() et         */
-/* jeu_reset() pour eviter la duplication de code.                    */
-/* ------------------------------------------------------------------ */
-
+                                                
+// place l'avion au point de depart face au premier anneau.          
 void avion_placer_depart(Avion *a){
     float sx, sz, ay;
     float c, s;
@@ -111,47 +103,51 @@ void avion_placer_depart(Avion *a){
     a->roulis_visuel  = 0.0f;
 }
 
-/* ------------------------------------------------------------------ */
-/* avion_update                                                        */
-/* ------------------------------------------------------------------ */
-
+// Calcul les mouvement et animation de l'avion a chaque frame
 void avion_update(Avion *a, float dt){
     float delta[16];
     float tmp[16];
 
-    /* --- Physique (inchangee) --- */
-
+    
+    // rotation gauche droite autour des y
     if (a->virer != 0.0f) {
+        //calcul de l'angle de rotation
         mat4_rot_y(-a->virer * VITESSE_VIRAGE * dt, delta);
+        //combine l'orientation de l'avion avec l'angle de rotation
         mat4_mul(a->rot, delta, tmp);
-        int i;
-        for (i = 0; i < 16; i++)
+        // Met a jour matrice de rot de avion
+        for (int i = 0; i < 16; i++)
             a->rot[i] = tmp[i];
     }
 
+    //avance auto sur le dans XZ
     {
+        //calcul de la distance a parcourir
         float dx = a->rot[8]  * a->vitesse * dt;
         float dz = a->rot[10] * a->vitesse * dt;
+        // matrice qui premet la translation vers la bone distance
         mat4_translation(dx, 0.0f, dz, delta);
+        // met ajour la positiond de l'avion
         mat4_mul(delta, a->trans, tmp);
-        int i;
-        for (i = 0; i < 16; i++) a->trans[i] = tmp[i];
+        for (int i = 0; i < 16; i++) 
+            a->trans[i] = tmp[i];
     }
 
+    // deplacement en hauteur 
     if (a->monter != 0.0f) {
+        // calcul de la distance a de la nouvelle hauteur
         float dy = a->monter * VITESSE_MONTEE * dt;
+        //matrice de deplacement
         mat4_translation(0.0f, dy, 0.0f, delta);
+        //calcul de la nouvelle hauteur de l'avion
         mat4_mul(delta, a->trans, tmp);
-        int i;
-        for (i = 0; i < 16; i++) a->trans[i] = tmp[i];
+        //MAJ de l'hauteur de l'avion
+        for (int i = 0; i < 16; i++) 
+            a->trans[i] = tmp[i];
     }
 
-    /* --- Angles visuels : lerp vers la cible ---
-     *
-     * L'angle cible est proportionnel a la commande (entre -1 et +1).
-     * Le facteur de lissage est : k = 1 - exp(-LERP_VITESSE * dt)
-     * ce qui garantit une convergence independante du framerate.
-     *
+    /* Animation de monter/descendre et gauche/droite
+    * 
      * Tangage :
      *   monter =  1 => cible =  TANGAGE_MAX (nez en haut)
      *   monter = -1 => cible = -TANGAGE_MAX (nez en bas)
@@ -163,20 +159,20 @@ void avion_update(Avion *a, float dt){
      *   virer =  0          => cible =  0
      */
     {
+        // permet de calculer le poucentage de l'animation a chaque frame
         float k = 1.0f - expf(-LERP_VITESSE * dt);
 
+        //calcul de l'angle de l'avion final
         float tangage_cible = a->monter *  TANGAGE_MAX;
         float roulis_cible  = a->virer  * ROULIS_MAX;
-
+        
+        //calcul de l'angle de l'avion selon le pourcentage de l'animation 
         a->tangage_visuel += (tangage_cible - a->tangage_visuel) * k;
         a->roulis_visuel  += (roulis_cible  - a->roulis_visuel)  * k;
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* avion_draw                                                          */
-/* ------------------------------------------------------------------ */
-
+// Dessine l'avion
 void avion_draw(const Avion *a){
     float m[16];
     mat4_mul(a->trans, a->rot, m);
@@ -184,21 +180,11 @@ void avion_draw(const Avion *a){
     glPushMatrix();
     glMultMatrixf(m);
 
-    /* Orientation du modele : le fuselage est dessine le long de X,
-     * on le fait pointer dans la direction +Z (sens de marche) */
+    /*orientation de base de l'avion */
     glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
-
-    /* --- Inclinaisons visuelles ---
-     *
-     * On applique d'abord le tangage (rotation autour de Z local,
-     * qui correspond a l'axe lateral de l'avion apres le -90 ci-dessus),
-     * puis le roulis (rotation autour de X local, axe longitudinal).
-     *
-     * L'ordre assure que les deux inclinaisons se combinent naturellement :
-     * en virage monte, l'avion pique et s'incline simultanement.
-     */
-    glRotatef(a->tangage_visuel, 0.0f, 0.0f, 1.0f);  /* tangage : axe lateral  */
-    glRotatef(a->roulis_visuel,  1.0f, 0.0f, 0.0f);  /* roulis  : axe longitudinal */
+    // orientation selon le tangage et le roulis
+    glRotatef(a->tangage_visuel, 0.0f, 0.0f, 1.0f);  // tangage
+    glRotatef(a->roulis_visuel,  1.0f, 0.0f, 0.0f);  // roulis 
 
     /* Fuselage */
     glColor3f(0.85f, 0.85f, 0.90f);

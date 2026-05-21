@@ -19,32 +19,27 @@
 #define CIRCUIT_RAYON  80.0f
 #define DEPART_DIST    20.0f
 
-/* ------------------------------------------------------------------ */
-/* anneaux_init                                                        */
-/* ------------------------------------------------------------------ */
 
+// creer le circuit  d'anneau en forme d'un cercle
 void anneaux_init(Anneau anneaux[NB_ANNEAUX]) {
     float hauteurs[NB_ANNEAUX] = {8.0f, 10.0f, 13.0f, 15.0f, 13.0f, 10.0f,8.0f, 10.0f, 13.0f, 15.0f, 13.0f, 10.0f};
-    int i;
-    for (i = 0; i < NB_ANNEAUX; i++) {
-        /* Angle de position sur le cercle (sens antihoraire vu du dessus) */
+    for (int i = 0; i < NB_ANNEAUX; i++) {
+        // renvoie la bonne partie du cercle trigo decoupe en part egal d'angle 
         float t = (float)i * (2.0f * PI / (float)NB_ANNEAUX);
 
         anneaux[i].x = CIRCUIT_RAYON * sinf(t);
         anneaux[i].z = CIRCUIT_RAYON * cosf(t);
         anneaux[i].y = hauteurs[i];
 
-        /* La tangente au cercle en t est perpendiculaire au rayon :
-         *   direction de vol = ( cos(t), 0, -sin(t) )
-         *   angle_y = atan2(cos(t), -sin(t))                          */
+        // oriente le trou de l'anneau correctement pour creer un parcours
         anneaux[i].angle_y = atan2f(cosf(t), -sinf(t));
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* anneaux_get_depart                                                  */
-/* ------------------------------------------------------------------ */
-
+/*
+ * Retourne la position et l'angle de depart de l'avion pour qu'il
+ * soit oriente face au premier anneau avec une distance de securite.
+ */
 void anneaux_get_depart(float *start_x, float *start_z,float *start_angle_y){
     Anneau anneaux[NB_ANNEAUX];
     anneaux_init(anneaux);
@@ -55,34 +50,31 @@ void anneaux_get_depart(float *start_x, float *start_z,float *start_angle_y){
     *start_angle_y = ay;
 }
 
-/* ------------------------------------------------------------------ */
-/* anneaux_draw                                                        */
-/* ------------------------------------------------------------------ */
 
 void anneaux_draw(const Anneau anneaux[NB_ANNEAUX], int anneau_courant) {
-    int i;
-
     float temps_s = (float)glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
     float pulse   = 0.5f + 0.5f * sinf(temps_s * 4.0f);
 
-    for (i = 0; i < NB_ANNEAUX; i++) {
+    for (int i = 0; i < NB_ANNEAUX; i++) {
         const Anneau *a = &anneaux[i];
-
+        //choix couleur
         if (i == 0) {
-            glColor3f(0.10f, 0.80f, 0.15f);           /* vert  : depart  */
+            glColor3f(0.10f, 0.80f, 0.15f);           // vert  :depart
         } else if (i == NB_ANNEAUX - 1) {
-            glColor3f(0.90f, 0.10f, 0.10f);           /* rouge : arrivee */
+            glColor3f(0.90f, 0.10f, 0.10f);           // rouge : arrivee 
         } else if (i == anneau_courant) {
-            glColor3f(pulse, 1.0f, 1.0f);             /* cyan pulse : cible */
+            glColor3f(pulse, 1.0f, 1.0f);             // cyan pulse : cible 
         } else {
-            glColor3f(0.70f, 0.55f, 0.07f);           /* dore attenué    */
+            glColor3f(0.70f, 0.55f, 0.07f);           // dore 
         }
-
+        //dessine l'anneau
         glPushMatrix();
+        //coordoné ou dessine
         glTranslatef(a->x, a->y, a->z);
+        //orientation du dessin ce qui rend le tore debout et la direction des trous du tore
         glRotatef(a->angle_y * (180.0f / PI), 0.0f, 1.0f, 0.0f);
-        glutSolidTorus(ANNEAU_RAYON_TUBE, ANNEAU_RAYON_TORE,
-                       ANNEAU_STACKS, ANNEAU_SLICES);
+        // dessin du tore
+        glutSolidTorus(ANNEAU_RAYON_TUBE, ANNEAU_RAYON_TORE,ANNEAU_STACKS, ANNEAU_SLICES);
         glPopMatrix();
     }
 }

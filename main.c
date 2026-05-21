@@ -36,9 +36,6 @@ int touche_droite  = 0;
 int mode_log = 0;
 int temps_precedent = 0;
 
-/* ------------------------------------------------------------------ */
-/* Dessin du sol                                                       */
-/* ------------------------------------------------------------------ */
 
 void dessiner_sol() {
     glColor3f(0.0f, 0.6f, 0.0f);
@@ -53,30 +50,33 @@ void dessiner_sol() {
 /* ------------------------------------------------------------------ */
 /* Affichage                                                           */
 /* ------------------------------------------------------------------ */
-
 void affichage() {
     float cam_x, cam_y, cam_z;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    double fov_rad = 60.0 * PI / 180.0;
+    
+    // calcul de la hauteur du rectangle du frustrum
+    double fov_rad = 60.0 * PI / 180.0;    //fov de 60 degre
     double t = 0.5 * tan(fov_rad / 2.0);
+    // calcul de la largeur du rectangle du frustum
     double r = t * ((double)FENETRE_W / (double)FENETRE_H);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-r, r, -t, t, 0.5, 2000.0);
+    glFrustum(-r, r, -t, t, 0.5, 2000.0); // near 0.5 pour pas voir truc trop proche
+                                          // far a 2000 pour voir très loin
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
+    // calcul de la position de la cam selon l'avion
     cam_x = avion.trans[12] - avion.rot[8]  * CAM_DIST;
     cam_y = avion.trans[13]                 + CAM_HAUTEUR;
     cam_z = avion.trans[14] - avion.rot[10] * CAM_DIST;
 
     gluLookAt(
-        cam_x, cam_y, cam_z,
-        avion.trans[12], avion.trans[13], avion.trans[14],
-        0.0f, 1.0f, 0.0f
+        cam_x, cam_y, cam_z,        //position de la camera
+        avion.trans[12], avion.trans[13], avion.trans[14],  // direction de la camm (la meme que l'avion)
+        0.0f, 1.0f, 0.0f    
     );
 
     dessiner_sol();
@@ -87,18 +87,17 @@ void affichage() {
     glutSwapBuffers();
 }
 
-/* ------------------------------------------------------------------ */
-/* Timer                                                               */
-/* ------------------------------------------------------------------ */
-
+// fonction apellé a chaque fram
 void timer(int valeur) {
     int   temps_courant;
     float dt;
 
     (void)valeur;
 
+    //Calcul temps entre 2 frame qui permet de faire avancé l'avion a la meme vitesse peut importe le fps de l'ecran
     temps_courant = glutGet(GLUT_ELAPSED_TIME);
     dt = (temps_courant - temps_precedent) / 1000.0f;
+    //si y a un gros lag on evite de faire teleporte l'avion
     if (dt > 0.1f) dt = 0.1f;
     temps_precedent = temps_courant;
 
